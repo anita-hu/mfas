@@ -76,8 +76,12 @@ def get_dataloaders(args):
     from torch.utils.data import DataLoader
 
     # Handle data
-    transformer_val = transforms.Compose([d.NormalizeLen(args.vid_len), d.ToTensor()])
-    transformer_tra = transforms.Compose([d.AugCrop(), d.NormalizeLen(args.vid_len), d.ToTensor()])
+    #transformer_val = transforms.Compose([d.NormalizeLen(args.vid_len), d.ToTensor()])
+    #transformer_tra = transforms.Compose([d.AugCrop(), d.NormalizeLen(args.vid_len), d.ToTensor()])
+    transformer_val = transforms.Compose([d.VisualRandomCrop(cropsize=(224, 224), central=True),
+                                          d.NormalizeLen(args.vid_len), d.ToTensor()])
+    transformer_tra = transforms.Compose([d.VisualRandomCrop(cropsize=(224, 224), central=True), d.AugCrop(),
+                                          d.NormalizeLen(args.vid_len), d.ToTensor()])
 
     dataset_training = d.NTU(args.datadir, transform=transformer_tra, stage='train', args=args)
     dataset_testing = d.NTU(args.datadir, transform=transformer_val, stage='test', args=args)

@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 import random
 import cv2
 from sklearn.utils import shuffle
-
+import torchvision.transforms as transforms
 
 # %% tools
 def load_video(path, vid_len=24):
@@ -108,6 +108,30 @@ class NormalizeLen(object):
                 'ske': skel,
                 'label': label}
 
+# %%
+class VisualRandomCrop(object):
+    """ Return a normalized number of frames. """
+
+    def __init__(self, cropsize=(224, 224), central=True):
+        self.cropsize = cropsize
+        self.central = central
+
+    def __call__(self, sample):
+        rgb, skel, label = sample['rgb'], sample['ske'], sample['label']
+        if rgb.shape[0] != 1 and self.central:
+            num_frame_rgb = len(rgb)
+            orig_x = rgb.shape[1]
+            orig_y = rgb.shape[2]
+            startx = orig_x // 2 - (self.cropsize[0] // 2)
+            starty = orig_y // 2 - (self.cropsize[1] // 2)
+            rgb = rgb[:, starty:starty + self.cropsize[1], startx:startx + self.cropsize[0], :]
+        else:
+            raise ValueError("Not implemented")
+
+        return {'rgb': rgb,
+                'ske': skel,
+                'label': label}
+
 
 def interpole(data, cropped_length, vid_len):
     C, T, V, M = data.shape
@@ -187,13 +211,15 @@ class NTU(Dataset):
         """
 
         if stage == 'train':
-            subjects = [1, 4, 8, 13, 15, 16, 17, 18, 19, 25, 27, 28, 31, 34, 35, 38]
+            # subjects = [1, 4, 8, 13, 15, 16, 17, 18, 19, 25, 27, 28, 31, 34, 35, 38]
+            subjects = [1, 2, 4, 5, 8, 9, 13, 14, 15, 16, 17, 18, 19, 25, 27, 28, 31, 34, 35, 38]
         elif stage == 'trainexp':
             subjects = [1, 4, 8, 13, 15, 17, 19]
         elif stage == 'test':
             subjects = [3, 6, 7, 10, 11, 12, 20, 21, 22, 23, 24, 26, 29, 30, 32, 33, 36, 37, 39, 40]
         elif stage == 'dev':  # smaller train datase for exploration
-            subjects = [2, 5, 9, 14]
+            # subjects = [2, 5, 9, 14]
+            subjects = [3, 6, 7, 10]
 
         basename_rgb = os.path.join(root_dir, 'nturgbd_rgb/avi_{0}x{0}_{1}'.format(vid_dim, vid_fr))
         basename_ske = os.path.join(root_dir, 'nturgbd_skeletons')
@@ -254,7 +280,6 @@ class NTU(Dataset):
         sample = {'rgb': video, 'ske': skeleton, 'label': label - 1}
         if self.transform:
             sample = self.transform(sample)
-
         return sample
 
     def video_transform(self, args, np_clip, np_skeleton):
